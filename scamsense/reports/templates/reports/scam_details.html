@@ -1,0 +1,432 @@
+{% extends "reports/base.html" %}
+{% block title %}{{ scam.reference_number }} — {{ scam.title }} | ScamSense India{% endblock %}
+
+{% block extra_head %}
+<style>
+.detail-layout {
+    max-width: 860px; margin: 0 auto; padding: 32px 24px 80px;
+}
+.breadcrumb {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--ink4); margin-bottom: 24px; flex-wrap: wrap;
+}
+.breadcrumb a { color: var(--ink4); text-decoration: none; transition: color 0.12s; }
+.breadcrumb a:hover { color: var(--ink); }
+.breadcrumb-sep { color: var(--line2); }
+
+/* HEADER CARD */
+.detail-header {
+    background: var(--bg2); border: 1px solid var(--line);
+    border-radius: var(--r-xl); padding: 24px;
+    margin-bottom: 14px; position: relative; overflow: hidden;
+}
+.detail-header::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.dh-phishing::before, .dh-ransomware::before { background: var(--red); }
+.dh-fraud_call::before, .dh-upi_fraud::before { background: var(--amber); }
+.dh-fake_shop::before { background: var(--blue); }
+.dh-investment::before { background: #5b3db5; }
+.dh-job_scam::before { background: var(--green); }
+.dh-sextortion::before { background: #9d1f6c; }
+.dh-other::before { background: var(--ink4); }
+
+.dh-ref {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; color: var(--blue);
+    font-family: var(--mono); letter-spacing: .5px;
+    background: var(--blue-bg); border: 1px solid var(--blue-line);
+    padding: 3px 10px; border-radius: 20px; margin-bottom: 12px;
+    cursor: pointer; transition: background 0.12s;
+}
+.dh-ref:hover { background: #d5e8f8; }
+.dh-ref-hint { font-size: 10px; color: var(--ink4); font-family: var(--sans); font-weight: 400; }
+
+.dh-title-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 14px; margin-bottom: 12px;
+}
+.dh-title {
+    font-size: 20px; font-weight: 600; color: var(--ink);
+    letter-spacing: -0.3px; line-height: 1.25; flex: 1;
+}
+.dh-badges { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+
+.dh-meta {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    font-size: 12px; color: var(--ink4);
+    padding-top: 12px; border-top: 1px solid var(--line);
+}
+.dh-meta-item { display: flex; align-items: center; gap: 5px; }
+.dh-meta-item strong { color: var(--ink2); font-weight: 500; }
+
+/* SECTION CARDS */
+.section-card {
+    background: var(--bg2); border: 1px solid var(--line);
+    border-radius: var(--r-xl); padding: 20px 22px;
+    margin-bottom: 12px;
+}
+.sc-title {
+    font-size: 11px; font-weight: 600; color: var(--ink4);
+    text-transform: uppercase; letter-spacing: .6px;
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.sc-body { font-size: 14px; color: var(--ink2); line-height: 1.75; }
+
+.info-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+.info-field { display: flex; flex-direction: column; gap: 3px; }
+.info-label {
+    font-size: 10.5px; color: var(--ink4);
+    text-transform: uppercase; letter-spacing: .4px; font-weight: 500;
+}
+.info-value {
+    font-size: 13.5px; color: var(--ink); font-weight: 500;
+    word-break: break-all;
+}
+.info-value.muted { color: var(--ink4); font-weight: 400; font-style: italic; }
+.info-value.mono {
+    font-family: var(--mono); font-size: 12.5px; color: var(--navy);
+    background: var(--bg3); padding: 3px 8px; border-radius: var(--r-sm);
+}
+
+/* AMOUNT */
+.amount-card {
+    background: var(--red-bg); border: 1px solid var(--red-line);
+    border-radius: var(--r-lg); padding: 16px 20px;
+    display: flex; align-items: baseline; gap: 6px;
+}
+.amount-curr { font-size: 16px; color: var(--red); font-weight: 500; }
+.amount-val  { font-size: 32px; font-weight: 600; color: var(--red); letter-spacing: -1px; }
+.amount-label { font-size: 12px; color: var(--red); opacity: .7; }
+
+/* SCAMMER ROWS */
+.scammer-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 13px 15px;
+    margin-bottom: 8px;
+}
+.scammer-item:last-child { margin-bottom: 0; }
+.scammer-item-icon {
+    width: 32px; height: 32px; border-radius: var(--r-md);
+    background: var(--red-bg); display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0;
+}
+.scammer-item-body { flex: 1; }
+.scammer-item-label { font-size: 10.5px; color: var(--ink4); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+.scammer-item-val { font-size: 13.5px; font-weight: 500; color: var(--ink); word-break: break-all; font-family: var(--mono); }
+.scammer-item-warn { font-size: 11px; color: var(--red); margin-top: 3px; }
+.scammer-item-action { font-size: 11px; color: var(--blue); text-decoration: none; font-weight: 500; white-space: nowrap; align-self: center; }
+
+/* EVIDENCE */
+.evidence-row {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--blue-bg); border: 1px solid var(--blue-line);
+    border-radius: var(--r-lg); padding: 14px 16px;
+}
+.evidence-row a { color: var(--blue); font-weight: 600; font-size: 13.5px; text-decoration: none; }
+.evidence-row a:hover { text-decoration: underline; }
+.evidence-sub { font-size: 11px; color: var(--ink4); margin-top: 2px; }
+
+/* NOTICE */
+.anon-notice {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg3); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 12px 14px;
+    font-size: 13px; color: var(--ink3); margin-bottom: 12px;
+}
+
+/* HELPLINE */
+.helpline-card {
+    background: var(--navy); border-radius: var(--r-xl);
+    padding: 24px; text-align: center; margin-top: 10px;
+}
+.helpline-card h4 { font-size: 14px; font-weight: 500; color: #c5cae9; margin-bottom: 8px; }
+.helpline-num { font-size: 40px; font-weight: 600; color: #e8eaf6; letter-spacing: 3px; line-height: 1; margin-bottom: 6px; }
+.helpline-sub { font-size: 12px; color: #7986cb; margin-bottom: 16px; }
+.helpline-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.helpline-link {
+    font-size: 12px; color: #c5cae9; text-decoration: none;
+    padding: 6px 14px; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--r-md); transition: background 0.12s;
+}
+.helpline-link:hover { background: rgba(255,255,255,0.05); }
+
+/* ACTIONS */
+.action-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+.btn-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg2); color: var(--ink2); padding: 10px 18px;
+    border-radius: var(--r-md); font-size: 13px; font-weight: 500;
+    border: 1px solid var(--line2); text-decoration: none;
+    font-family: var(--sans); transition: background 0.12s;
+}
+.btn-back:hover { background: var(--bg3); }
+.btn-share {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; color: var(--ink3); padding: 10px 18px;
+    border-radius: var(--r-md); font-size: 13px; font-weight: 500;
+    border: 1px solid var(--line2); cursor: pointer; text-decoration: none;
+    font-family: var(--sans); transition: background 0.12s;
+}
+.btn-share:hover { background: var(--bg3); color: var(--ink); }
+.btn-report-similar {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--navy); color: #e8eaf6; padding: 10px 18px;
+    border-radius: var(--r-md); font-size: 13px; font-weight: 600;
+    border: none; text-decoration: none; font-family: var(--sans);
+    transition: background 0.12s;
+}
+.btn-report-similar:hover { background: var(--navy2); }
+
+/* TOAST */
+.toast {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: var(--navy); color: #e8eaf6;
+    border-radius: var(--r-md); padding: 9px 18px;
+    font-size: 13px; opacity: 0; transition: all 0.22s;
+    pointer-events: none; z-index: 999; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 600px) {
+    .detail-layout { padding: 20px 16px 60px; }
+    .dh-title-row { flex-direction: column; }
+    .dh-title { font-size: 17px; }
+    .info-grid { grid-template-columns: 1fr; }
+    .amount-val { font-size: 26px; }
+    .action-row { flex-direction: column; }
+    .action-row a, .action-row button { justify-content: center; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-layout">
+
+    <div class="breadcrumb">
+        <a href="/">Dashboard</a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="/explore/">Explore</a>
+        <span class="breadcrumb-sep">/</span>
+        <span>{{ scam.reference_number|default:"Report" }}</span>
+    </div>
+
+    <!-- HEADER -->
+    <div class="detail-header dh-{{ scam.scam_type }}">
+        <div class="dh-ref" onclick="copyRef('{{ scam.reference_number }}')">
+            {{ scam.reference_number }}
+            <span class="dh-ref-hint">click to copy</span>
+        </div>
+        <div class="dh-title-row">
+            <div class="dh-title">{{ scam.title }}</div>
+            <div class="dh-badges">
+                <span class="badge badge-{{ scam.scam_type }}">{{ scam.get_scam_type_display }}</span>
+                <span class="badge badge-sev-{{ scam.severity }}">{{ scam.get_severity_label }}</span>
+                <span class="badge badge-status-{{ scam.status }}">{{ scam.get_status_display }}</span>
+            </div>
+        </div>
+        <div class="dh-meta">
+            <div class="dh-meta-item">📍 <strong>{{ scam.location }}{% if scam.pin_code %} — {{ scam.pin_code }}{% endif %}{% if scam.state %}, {{ scam.state }}{% endif %}</strong></div>
+            {% if scam.incident_date %}
+            <div class="dh-meta-item">📅 <strong>{{ scam.incident_date }}{% if scam.incident_time %} at {{ scam.incident_time }}{% endif %}</strong></div>
+            {% endif %}
+            <div class="dh-meta-item">Filed <strong>{{ scam.date_reported|date:"d M Y, g:i A" }}</strong></div>
+            {% if scam.anonymous %}<div class="dh-meta-item"><strong>Anonymous report</strong></div>{% endif %}
+        </div>
+    </div>
+
+    <!-- CLASSIFICATION -->
+    <div class="section-card">
+        <div class="sc-title">Classification</div>
+        <div class="info-grid">
+            <div class="info-field">
+                <span class="info-label">Scam type</span>
+                <span class="info-value">{{ scam.get_scam_type_display }}</span>
+            </div>
+            <div class="info-field">
+                <span class="info-label">Sub-category</span>
+                <span class="info-value {% if not scam.scam_subtype %}muted{% endif %}">
+                    {% if scam.scam_subtype %}{{ scam.get_scam_subtype_display }}{% else %}Not specified{% endif %}
+                </span>
+            </div>
+            <div class="info-field">
+                <span class="info-label">Platform / channel</span>
+                <span class="info-value {% if not scam.platform %}muted{% endif %}">
+                    {% if scam.platform %}{{ scam.get_platform_display }}{% else %}Not specified{% endif %}
+                </span>
+            </div>
+            <div class="info-field">
+                <span class="info-label">Platform detail</span>
+                <span class="info-value {% if not scam.platform_detail %}muted{% endif %}">
+                    {% if scam.platform_detail %}{{ scam.platform_detail }}{% else %}—{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- DESCRIPTION -->
+    <div class="section-card">
+        <div class="sc-title">Incident Description</div>
+        <div class="sc-body">{{ scam.description|linebreaks }}</div>
+    </div>
+
+    <!-- FINANCIAL -->
+    {% if scam.amount_lost or scam.bank_involved %}
+    <div class="section-card">
+        <div class="sc-title">Financial Details</div>
+        {% if scam.amount_lost %}
+        <div class="amount-card" style="margin-bottom:{% if scam.bank_involved %}12px{% else %}0{% endif %}">
+            <span class="amount-curr">₹</span>
+            <span class="amount-val">{{ scam.amount_lost }}</span>
+            <span class="amount-label">reported loss</span>
+        </div>
+        {% endif %}
+        {% if scam.bank_involved %}
+        <div class="info-field">
+            <span class="info-label">Bank involved</span>
+            <span class="info-value">{{ scam.bank_involved }}</span>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- SCAMMER DETAILS -->
+    {% if scam.scammer_contact or scam.scammer_upi or scam.scammer_account %}
+    <div class="section-card">
+        <div class="sc-title">Scammer Details</div>
+        <p style="font-size:12px;color:var(--red);margin-bottom:12px">Do not contact these details. Share with authorities only.</p>
+
+        {% if scam.scammer_contact %}
+        <div class="scammer-item">
+            <div class="scammer-item-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2.5A1.5 1.5 0 013.5 1h7A1.5 1.5 0 0112 2.5v9A1.5 1.5 0 0110.5 13h-7A1.5 1.5 0 012 11.5v-9z" stroke="#e24b4a" stroke-width="1.2"/><path d="M5 5.5h4M5 7.5h4M5 9.5h2" stroke="#e24b4a" stroke-width="1" stroke-linecap="round"/></svg>
+            </div>
+            <div class="scammer-item-body">
+                <div class="scammer-item-label">Phone / Email / Username</div>
+                <div class="scammer-item-val">{{ scam.scammer_contact }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if scam.scammer_upi %}
+        <div class="scammer-item">
+            <div class="scammer-item-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="#e24b4a" stroke-width="1.2"/><path d="M1 6h12" stroke="#e24b4a" stroke-width="1"/></svg>
+            </div>
+            <div class="scammer-item-body">
+                <div class="scammer-item-label">UPI ID</div>
+                <div class="scammer-item-val">{{ scam.scammer_upi }}</div>
+                <div class="scammer-item-warn">Report to your bank and NPCI immediately</div>
+            </div>
+            <a href="https://www.npci.org.in/what-we-do/upi/dispute-redressal-mechanism" target="_blank" class="scammer-item-action">Report to NPCI →</a>
+        </div>
+        {% endif %}
+
+        {% if scam.scammer_account %}
+        <div class="scammer-item">
+            <div class="scammer-item-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="10" rx="1.5" stroke="#e24b4a" stroke-width="1.2"/><path d="M1 5.5h12M5 5.5v6.5" stroke="#e24b4a" stroke-width="1"/></svg>
+            </div>
+            <div class="scammer-item-body">
+                <div class="scammer-item-label">Bank account{% if scam.scammer_ifsc %} · IFSC: {{ scam.scammer_ifsc }}{% endif %}</div>
+                <div class="scammer-item-val">{{ scam.scammer_account }}</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- EVIDENCE -->
+    {% if scam.evidence %}
+    <div class="section-card">
+        <div class="sc-title">Evidence</div>
+        <div class="evidence-row">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="2" width="16" height="18" rx="2" stroke="#185fa5" stroke-width="1.3"/><path d="M7 7h8M7 11h8M7 15h5" stroke="#185fa5" stroke-width="1" stroke-linecap="round"/></svg>
+            <div>
+                <a href="{{ scam.evidence.url }}" target="_blank" rel="noopener">View uploaded evidence ↗</a>
+                <div class="evidence-sub">Submitted by reporter · Handle with care</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- LOCATION -->
+    <div class="section-card">
+        <div class="sc-title">Location</div>
+        <div class="info-grid">
+            <div class="info-field">
+                <span class="info-label">City</span>
+                <span class="info-value">{{ scam.location }}</span>
+            </div>
+            {% if scam.pin_code %}
+            <div class="info-field">
+                <span class="info-label">PIN Code</span>
+                <span class="info-value mono">{{ scam.pin_code }}</span>
+            </div>
+            {% endif %}
+            {% if scam.state %}
+            <div class="info-field">
+                <span class="info-label">State</span>
+                <span class="info-value">{{ scam.state }}</span>
+            </div>
+            {% endif %}
+            {% if scam.latitude and scam.longitude %}
+            <div class="info-field">
+                <span class="info-label">Coordinates</span>
+                <span class="info-value mono">{{ scam.latitude|floatformat:4 }}, {{ scam.longitude|floatformat:4 }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if scam.anonymous %}
+    <div class="anon-notice">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 6V4.5a2.5 2.5 0 015 0V6" stroke="currentColor" stroke-width="1.2"/></svg>
+        This report was submitted anonymously. The reporter's identity is fully protected.
+    </div>
+    {% endif %}
+
+    <!-- HELPLINE -->
+    <div class="helpline-card">
+        <h4>Affected? Get help immediately.</h4>
+        <div class="helpline-num">1930</div>
+        <div class="helpline-sub">National Cybercrime Helpline · 24×7 · Free</div>
+        <div class="helpline-links">
+            <a href="https://cybercrime.gov.in" target="_blank" class="helpline-link">cybercrime.gov.in ↗</a>
+            <a href="https://www.npci.org.in/what-we-do/upi/dispute-redressal-mechanism" target="_blank" class="helpline-link">Report UPI fraud ↗</a>
+        </div>
+    </div>
+
+    <div class="action-row">
+        <a href="/explore/" class="btn-back">← Back to Explore</a>
+        <button class="btn-share" onclick="shareReport()">Share Report</button>
+        <a href="/report/" class="btn-report-similar">Report a Similar Scam</a>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+}
+function copyRef(ref) {
+    navigator.clipboard.writeText(ref)
+        .then(() => showToast('Copied: ' + ref))
+        .catch(() => showToast('Ref: ' + ref));
+}
+function shareReport() {
+    if (navigator.share) {
+        navigator.share({ title: '{{ scam.reference_number }} — ScamSense India', url: window.location.href }).catch(()=>{});
+    } else {
+        navigator.clipboard.writeText(window.location.href).then(() => showToast('Link copied'));
+    }
+}
+</script>
+{% endblock %}

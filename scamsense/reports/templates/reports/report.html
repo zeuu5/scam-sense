@@ -1,0 +1,328 @@
+{% extends "reports/base.html" %}
+{% block title %}Report a Scam — ScamSense India{% endblock %}
+
+{% block extra_head %}
+<style>
+.report-wrap {
+    max-width: 660px; margin: 0 auto;
+    padding: 48px 24px 80px;
+}
+
+/* ── PAGE HEAD ───────────────────────────────────── */
+.report-head { text-align:center; margin-bottom:40px; }
+.report-head h1 {
+    font-family:var(--font-head);
+    font-size:30px; font-weight:800; letter-spacing:-0.5px; margin-bottom:8px;
+}
+.report-head h1 em { font-style:normal; color:var(--red); }
+.report-head p { color:var(--text2); font-size:14px; }
+
+/* ── STEP PROGRESS ───────────────────────────────── */
+.steps { display:flex; align-items:center; margin-bottom:36px; }
+.step-item {
+    display:flex; flex-direction:column; align-items:center;
+    flex:1; position:relative;
+}
+.step-item:not(:last-child)::after {
+    content:''; position:absolute;
+    top:16px; left:calc(50% + 17px);
+    width:calc(100% - 34px); height:2px;
+    background:var(--border2); transition:background 0.4s;
+}
+.step-item.done:not(:last-child)::after   { background:var(--green); }
+
+.step-circle {
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700;
+    border:2px solid var(--border2);
+    color:var(--text3); background:var(--bg);
+    transition:all 0.3s; margin-bottom:6px;
+    font-family:var(--font-head);
+}
+.step-item.active .step-circle { border-color:var(--cyan); color:var(--cyan); background:rgba(34,211,238,0.08); }
+.step-item.done   .step-circle { border-color:var(--green); background:rgba(16,185,129,0.1); color:var(--green); }
+.step-label { font-size:11px; color:var(--text3); }
+.step-item.active .step-label { color:var(--cyan); }
+.step-item.done   .step-label { color:var(--green); }
+
+/* ── FORM CARD ───────────────────────────────────── */
+.form-card {
+    background:var(--surface);
+    border:1px solid var(--border2);
+    border-radius:18px; padding:32px;
+}
+.form-card-title {
+    font-family:var(--font-head);
+    font-size:17px; font-weight:700;
+    margin-bottom:24px;
+    display:flex; align-items:center; gap:10px;
+    padding-bottom:16px; border-bottom:1px solid var(--border);
+}
+.form-card-icon {
+    width:30px; height:30px; border-radius:8px;
+    background:rgba(239,68,68,0.1);
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+}
+
+/* ── DJANGO FORM FIELDS ──────────────────────────── */
+/* Django renders form.as_p as <p><label>...</label><input></p> */
+#formContainer p { margin-bottom:16px; }
+#formContainer p label {
+    display:block; font-size:11.5px; font-weight:500;
+    color:var(--text2); margin-bottom:7px;
+    letter-spacing:0.3px; text-transform:uppercase;
+}
+#formContainer input[type="text"],
+#formContainer input[type="number"],
+#formContainer input[type="date"],
+#formContainer input[type="email"],
+#formContainer input[type="file"],
+#formContainer select,
+#formContainer textarea {
+    width:100%; background:var(--bg);
+    border:1px solid var(--border2); border-radius:10px;
+    padding:10px 14px; font-size:13.5px; color:var(--text);
+    font-family:var(--font-body); outline:none;
+    transition:border-color 0.15s, background 0.15s;
+    appearance:none;
+}
+#formContainer input:focus,
+#formContainer select:focus,
+#formContainer textarea:focus {
+    border-color:var(--cyan2);
+    background:rgba(8,145,178,0.04);
+}
+#formContainer textarea { resize:vertical; min-height:100px; }
+#formContainer input[type="checkbox"] {
+    width:16px; height:16px;
+    accent-color:var(--cyan); cursor:pointer;
+}
+#formContainer ul.errorlist { list-style:none; margin-top:6px; }
+#formContainer ul.errorlist li { font-size:12px; color:var(--red); }
+
+/* ── MESSAGES ────────────────────────────────────── */
+.msg {
+    padding:13px 16px; border-radius:10px;
+    margin-bottom:18px; font-size:13px; display:none;
+}
+.msg-error {
+    background:rgba(239,68,68,0.08);
+    border:1px solid rgba(239,68,68,0.25); color:#fca5a5;
+}
+
+/* ── SUBMIT ──────────────────────────────────────── */
+.submit-row { display:flex; justify-content:flex-end; margin-top:28px; }
+.btn-submit {
+    background:var(--red); color:#fff;
+    padding:12px 28px; border-radius:10px;
+    font-weight:700; font-size:14px; border:none; cursor:pointer;
+    font-family:var(--font-head); letter-spacing:0.2px;
+    transition:background 0.15s, transform 0.1s, opacity 0.15s;
+    display:inline-flex; align-items:center; gap:8px;
+}
+.btn-submit:hover { background:var(--red2); transform:translateY(-1px); }
+.btn-submit:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+/* ── SUCCESS CARD ────────────────────────────────── */
+.success-card {
+    text-align:center; padding:48px 24px; display:none;
+}
+.success-icon {
+    width:72px; height:72px; border-radius:50%;
+    background:rgba(16,185,129,0.1);
+    border:2px solid rgba(16,185,129,0.3);
+    display:flex; align-items:center; justify-content:center;
+    font-size:30px; margin:0 auto 20px;
+}
+.success-card h2 {
+    font-family:var(--font-head); font-size:22px; font-weight:800; margin-bottom:10px;
+}
+.success-card p { color:var(--text2); margin-bottom:24px; font-size:14px; line-height:1.6; }
+.success-links { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+/* ── TRUST STRIP ─────────────────────────────────── */
+.trust-strip {
+    display:flex; flex-direction:column; gap:8px;
+    margin-top:22px; padding-top:20px; border-top:1px solid var(--border);
+}
+.trust-item {
+    display:flex; align-items:center; gap:8px;
+    font-size:12px; color:var(--text3);
+}
+.trust-item .tick { color:var(--green); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-wrap">
+
+    <!-- HEAD -->
+    <div class="report-head">
+        <h1>Report a <em>Scam</em></h1>
+        <p>Takes under 2 minutes · Your report protects thousands of others</p>
+    </div>
+
+    <!-- STEP PROGRESS -->
+    <div class="steps" id="stepsRow">
+        <div class="step-item active" id="si-1">
+            <div class="step-circle">1</div>
+            <div class="step-label">Basics</div>
+        </div>
+        <div class="step-item" id="si-2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Details</div>
+        </div>
+        <div class="step-item" id="si-3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Evidence</div>
+        </div>
+        <div class="step-item" id="si-4">
+            <div class="step-circle">4</div>
+            <div class="step-label">Confirm</div>
+        </div>
+    </div>
+
+    <!-- FORM CARD -->
+    <div class="form-card" id="formCard">
+        <div class="form-card-title">
+            <div class="form-card-icon" id="cardIcon">⚠</div>
+            <span id="cardTitleText">Scam Information</span>
+        </div>
+
+        <div class="msg msg-error" id="errorMsg"></div>
+
+        <form method="POST" id="reportForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div id="formContainer">{{ form.as_p }}</div>
+            <div class="submit-row">
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    {% if step == 4 %}Submit Report 🔒{% else %}Continue →{% endif %}
+                </button>
+            </div>
+        </form>
+
+        <div class="trust-strip">
+            <div class="trust-item"><span class="tick">✔</span> Data encrypted &amp; securely stored</div>
+            <div class="trust-item"><span class="tick">✔</span> Anonymity option available on step 3</div>
+            <div class="trust-item"><span class="tick">✔</span> Critical reports forwarded to Cyber Crime Cell</div>
+        </div>
+    </div>
+
+    <!-- SUCCESS CARD -->
+    <div class="success-card form-card" id="successCard">
+        <div class="success-icon">✓</div>
+        <h2>Report Submitted</h2>
+        <p>
+            Thank you. Your report has been added to the national database and will help warn others in your area.
+            If you've lost money, also file a complaint with your local cyber crime cell.
+        </p>
+        <div class="success-links">
+            <a href="/" class="btn-submit" style="text-decoration:none">← Back to Dashboard</a>
+            <a href="/report/" class="btn-submit"
+               style="background:var(--surface);border:1px solid var(--border2);color:var(--text);text-decoration:none">
+               Report Another
+            </a>
+        </div>
+        <div class="trust-strip" style="margin-top:28px;align-items:center;text-align:center">
+            <div class="trust-item" style="justify-content:center">
+                <span>📞</span> Cybercrime Helpline:
+                <strong style="color:var(--cyan);margin-left:4px">1930</strong>
+            </div>
+            <div class="trust-item" style="justify-content:center">
+                <span>🌐</span>
+                <a href="https://cybercrime.gov.in" target="_blank" style="color:var(--cyan)">
+                    cybercrime.gov.in
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const ICONS  = ['⚠','📋','📎','✅'];
+const TITLES = ['Scam Information','What Happened','Evidence & Location','Review & Confirm'];
+const BTNS   = ['Continue →','Continue →','Continue →','Submit Report 🔒'];
+
+const form      = document.getElementById('reportForm');
+const submitBtn = document.getElementById('submitBtn');
+const formCont  = document.getElementById('formContainer');
+const errorMsg  = document.getElementById('errorMsg');
+const cardIcon  = document.getElementById('cardIcon');
+const cardTitle = document.getElementById('cardTitleText');
+
+let step = {{ step }};
+
+function updateSteps(s) {
+    for (let i = 1; i <= 4; i++) {
+        const el  = document.getElementById('si-' + i);
+        const cir = el.querySelector('.step-circle');
+        el.classList.remove('active','done');
+        if (i < s)      { el.classList.add('done');   cir.textContent = '✓'; }
+        else if (i ===s){ el.classList.add('active');  cir.textContent = i;  }
+        else            {                              cir.textContent = i;  }
+    }
+    cardIcon.textContent  = ICONS[s-1];
+    cardTitle.textContent = TITLES[s-1];
+    submitBtn.textContent = BTNS[s-1];
+    submitBtn.disabled    = false;
+}
+
+function showError(html) {
+    errorMsg.innerHTML     = '⚠ ' + html;
+    errorMsg.style.display = 'block';
+    errorMsg.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    errorMsg.style.display = 'none';
+    submitBtn.disabled     = true;
+    submitBtn.textContent  = 'Please wait…';
+
+    fetch('/report/' + step + '/', {
+        method: 'POST',
+        body:   new FormData(form),
+        headers:{ 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.errors) {
+            showError(Object.values(data.errors).flat().join('<br>'));
+            submitBtn.disabled    = false;
+            submitBtn.textContent = BTNS[step-1];
+
+        } else if (data.next_step) {
+            step = data.next_step;
+            updateSteps(step);
+            fetch('/report/' + step + '/')
+                .then(r => r.text())
+                .then(html => {
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const nc  = doc.querySelector('#formContainer');
+                    if (nc) formCont.innerHTML = nc.innerHTML;
+                });
+
+        } else if (data.submitted) {
+            document.getElementById('formCard').style.display    = 'none';
+            document.getElementById('successCard').style.display = 'block';
+            document.querySelectorAll('.step-item').forEach(el => {
+                el.classList.remove('active');
+                el.classList.add('done');
+                el.querySelector('.step-circle').textContent = '✓';
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    })
+    .catch(() => {
+        showError('An unexpected error occurred. Please try again.');
+        submitBtn.disabled    = false;
+        submitBtn.textContent = BTNS[step-1];
+    });
+});
+
+updateSteps(step);
+</script>
+{% endblock %}

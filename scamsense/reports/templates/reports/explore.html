@@ -1,0 +1,228 @@
+{% extends "reports/base.html" %}
+{% block title %}Explore Reports — ScamSense India{% endblock %}
+
+{% block extra_head %}
+<style>
+.explore-header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    padding: 36px 32px 28px;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;
+    flex-wrap: wrap;
+}
+.explore-header-left h1 {
+    font-size: 24px; font-weight: 600; letter-spacing: -0.5px;
+    color: var(--ink); margin-bottom: 4px;
+}
+.explore-header-left p { font-size: 13.5px; color: var(--ink3); }
+
+.filter-row {
+    background: var(--bg2); border-bottom: 1px solid var(--line);
+    padding: 14px 32px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.filter-search-wrap { flex: 1; min-width: 200px; position: relative; }
+.filter-search-icon {
+    position: absolute; left: 11px; top: 50%;
+    transform: translateY(-50%); color: var(--ink4);
+    pointer-events: none;
+}
+.filter-search {
+    width: 100%; background: var(--bg);
+    border: 1px solid var(--line2); border-radius: var(--r-md);
+    padding: 8px 12px 8px 34px; font-size: 13px;
+    color: var(--ink); outline: none;
+    font-family: var(--sans); transition: border-color 0.12s;
+}
+.filter-search:focus { border-color: var(--navy); background: var(--bg2); }
+.filter-search::placeholder { color: var(--ink4); }
+
+.filter-select {
+    background: var(--bg); border: 1px solid var(--line2);
+    border-radius: var(--r-md); padding: 8px 12px;
+    font-size: 12px; color: var(--ink3); outline: none;
+    cursor: pointer; font-family: var(--sans);
+    transition: border-color 0.12s;
+}
+.filter-select:focus { border-color: var(--navy); color: var(--ink); }
+
+.filter-apply {
+    background: var(--navy); color: #e8eaf6;
+    border: none; border-radius: var(--r-md);
+    padding: 8px 18px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: var(--sans);
+    transition: background 0.12s;
+}
+.filter-apply:hover { background: var(--navy2); }
+
+.results-bar {
+    padding: 10px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12.5px; color: var(--ink4);
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+}
+.results-bar strong { color: var(--ink2); }
+.results-bar a { color: var(--red); font-weight: 600; text-decoration: none; font-size: 12px; }
+
+.explore-body { padding: 24px 32px 64px; }
+
+.scam-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+}
+
+.scam-card {
+    background: var(--bg2); border: 1px solid var(--line);
+    border-radius: var(--r-xl); padding: 0;
+    text-decoration: none; color: inherit; display: flex; flex-direction: column;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    overflow: hidden;
+}
+.scam-card:hover {
+    border-color: var(--line2);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+}
+.scam-card-top {
+    padding: 18px 18px 14px; flex: 1;
+}
+.scam-card-hdr {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px;
+}
+.scam-card-title {
+    font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; flex: 1;
+}
+.scam-card-meta {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    font-size: 12px; color: var(--ink4); margin-bottom: 10px;
+}
+.scam-card-desc {
+    font-size: 13px; color: var(--ink3); line-height: 1.6;
+    display: -webkit-box; -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical; overflow: hidden;
+}
+.scam-card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; border-top: 1px solid var(--line);
+    background: var(--bg);
+}
+.scam-card-footer-left { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.scam-card-arrow { font-size: 12px; color: var(--blue); font-weight: 500; }
+
+.empty-state {
+    grid-column: 1/-1; text-align: center; padding: 72px 24px; color: var(--ink4);
+}
+.empty-state h3 { font-size: 17px; font-weight: 600; color: var(--ink2); margin-bottom: 8px; }
+.empty-state p  { font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
+.empty-state-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn-outline {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent; color: var(--ink2);
+    padding: 9px 18px; border-radius: var(--r-md);
+    font-size: 13px; font-weight: 500;
+    border: 1px solid var(--line2); text-decoration: none;
+    font-family: var(--sans); transition: background 0.12s;
+}
+.btn-outline:hover { background: var(--bg3); }
+.btn-outline.primary { background: var(--navy); color: #e8eaf6; border-color: var(--navy); }
+.btn-outline.primary:hover { background: var(--navy2); }
+
+@media (max-width: 768px) {
+    .explore-header, .filter-row, .explore-body, .results-bar { padding-left: 20px; padding-right: 20px; }
+    .scam-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="explore-header">
+    <div class="explore-header-left">
+        <h1>Explore Reported Incidents</h1>
+        <p>Browse community-reported cybercrime across India. Search, filter, and stay informed.</p>
+    </div>
+    <a href="/report/" style="display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#e8eaf6;padding:9px 18px;border-radius:var(--r-md);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Report Incident
+    </a>
+</div>
+
+<form method="GET" action="/explore/">
+    <div class="filter-row">
+        <div class="filter-search-wrap">
+            <svg class="filter-search-icon" width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <input class="filter-search" type="text" name="q"
+                   value="{{ request.GET.q }}"
+                   placeholder="Search by platform, city, scam type, description...">
+        </div>
+        <select class="filter-select" name="sort">
+            <option value="">Sort: Default</option>
+            <option value="newest"   {% if request.GET.sort == 'newest'   %}selected{% endif %}>Newest first</option>
+            <option value="oldest"   {% if request.GET.sort == 'oldest'   %}selected{% endif %}>Oldest first</option>
+            <option value="critical" {% if request.GET.sort == 'critical' %}selected{% endif %}>Most critical</option>
+        </select>
+        <button class="filter-apply" type="submit">Apply</button>
+    </div>
+</form>
+
+<div class="results-bar">
+    <span>
+        {% if request.GET.q %}Results for <strong>"{{ request.GET.q }}"</strong> — {% endif %}
+        <strong>{{ scams|length }}</strong> report{{ scams|length|pluralize }} found
+    </span>
+    <a href="/report/">+ Report a Scam</a>
+</div>
+
+<div class="explore-body">
+    <div class="scam-grid">
+        {% for scam in scams %}
+        <a class="scam-card" href="{% url 'scam_details' scam.id %}">
+            <div class="scam-card-top">
+                <div class="scam-card-hdr">
+                    <div class="scam-card-title">{{ scam.title }}</div>
+                    <span class="badge badge-{{ scam.scam_type }}">{{ scam.get_scam_type_display }}</span>
+                </div>
+                <div class="scam-card-meta">
+                    <span>📍 {{ scam.location }}</span>
+                    <span>{{ scam.incident_date|default:scam.date }}</span>
+                </div>
+                <p class="scam-card-desc">{{ scam.description|truncatewords:28 }}</p>
+            </div>
+            <div class="scam-card-footer">
+                <div class="scam-card-footer-left">
+                    {% if scam.amount_lost %}<span class="amount-chip">₹ {{ scam.amount_lost }}</span>{% endif %}
+                    {% if scam.anonymous %}
+                    <span class="badge" style="background:var(--bg3);color:var(--ink4);border:1px solid var(--line)">Anonymous</span>
+                    {% endif %}
+                    {% if scam.reference_number %}
+                    <span style="font-size:10.5px;color:var(--ink4);font-family:var(--mono)">{{ scam.reference_number }}</span>
+                    {% endif %}
+                </div>
+                <span class="scam-card-arrow">View →</span>
+            </div>
+        </a>
+        {% empty %}
+        <div class="empty-state">
+            <div style="font-size:32px;margin-bottom:14px;opacity:0.3">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="14" cy="14" r="10" stroke="currentColor" stroke-width="2"/><path d="M22 22l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <h3>No reports found</h3>
+            <p>
+                {% if request.GET.q %}Nothing matched "{{ request.GET.q }}". Try a different search term.
+                {% else %}No reports in the database yet.{% endif %}
+            </p>
+            <div class="empty-state-btns">
+                <a href="/explore/" class="btn-outline">Clear search</a>
+                <a href="/report/" class="btn-outline primary">Report a Scam</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

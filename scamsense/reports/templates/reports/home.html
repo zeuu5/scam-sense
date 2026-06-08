@@ -1,0 +1,467 @@
+{% extends "reports/base.html" %}
+{% block title %}ScamSense India — Cyber Fraud Intelligence Dashboard{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ── HERO ───────────────────────────────────────────── */
+.hero {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    padding: 52px 32px 44px;
+}
+.hero-inner {
+    max-width: 680px;
+}
+.hero-label {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 11.5px; font-weight: 500; color: var(--ink3);
+    text-transform: uppercase; letter-spacing: .6px;
+    margin-bottom: 16px;
+}
+.hero-label-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); flex-shrink: 0;
+    animation: hpulse 2s ease-in-out infinite;
+}
+@keyframes hpulse {
+    0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(59,109,17,0.4)}
+    60%{box-shadow:0 0 0 5px rgba(59,109,17,0)}
+}
+.hero h1 {
+    font-size: clamp(26px, 4vw, 40px);
+    font-weight: 600; line-height: 1.15;
+    letter-spacing: -0.8px; color: var(--ink);
+    margin-bottom: 12px;
+}
+.hero h1 em { font-style: normal; color: var(--red); }
+.hero p {
+    font-size: 15px; color: var(--ink3); line-height: 1.65;
+    max-width: 520px; margin-bottom: 28px;
+}
+.hero-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--navy); color: #e8eaf6;
+    padding: 10px 22px; border-radius: var(--r-md);
+    font-weight: 600; font-size: 13px;
+    border: none; cursor: pointer; text-decoration: none;
+    font-family: var(--sans);
+    transition: background 0.12s, transform 0.1s;
+}
+.btn-primary:hover { background: var(--navy2); transform: translateY(-1px); }
+.btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: var(--ink2);
+    padding: 10px 20px; border-radius: var(--r-md);
+    font-weight: 500; font-size: 13px;
+    border: 1px solid var(--line2); cursor: pointer; text-decoration: none;
+    font-family: var(--sans);
+    transition: background 0.12s;
+}
+.btn-secondary:hover { background: var(--bg3); }
+
+/* ── STATS BAR ──────────────────────────────────────── */
+.stats-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--line);
+    background: var(--bg2);
+}
+.stat-cell {
+    padding: 20px 24px; border-right: 1px solid var(--line);
+    transition: background 0.12s;
+}
+.stat-cell:last-child { border-right: none; }
+.stat-cell:hover { background: var(--bg3); }
+.stat-n {
+    font-size: 26px; font-weight: 600; line-height: 1;
+    margin-bottom: 4px; letter-spacing: -0.5px;
+}
+.stat-l {
+    font-size: 11px; color: var(--ink4);
+    text-transform: uppercase; letter-spacing: .5px;
+}
+.n-red    { color: var(--red); }
+.n-amber  { color: var(--amber); }
+.n-blue   { color: var(--blue); }
+.n-green  { color: var(--green); }
+.n-navy   { color: var(--navy); }
+
+/* ── MAIN GRID ──────────────────────────────────────── */
+.content-grid {
+    display: grid; grid-template-columns: 1fr 360px;
+    min-height: 540px;
+}
+.content-left {
+    padding: 28px 32px; border-right: 1px solid var(--line);
+}
+.content-right { background: var(--bg2); }
+
+/* ── SECTION HEADER ─────────────────────────────────── */
+.sec-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+}
+.sec-title {
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
+}
+.sec-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--green-bg); color: var(--green);
+    border: 1px solid var(--green-line);
+    font-size: 10.5px; font-weight: 500;
+    padding: 2px 8px 2px 6px; border-radius: 20px;
+}
+.sec-badge-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    animation: hpulse 2s ease-in-out infinite;
+}
+.sec-link {
+    font-size: 12px; color: var(--blue); text-decoration: none;
+    font-weight: 500;
+}
+.sec-link:hover { text-decoration: underline; }
+
+/* ── MAP ────────────────────────────────────────────── */
+#map {
+    height: 420px; width: 100%;
+    border-radius: var(--r-lg);
+    border: 1px solid var(--line2);
+    overflow: hidden;
+}
+.map-filter-row {
+    display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.map-filter-select {
+    background: var(--bg2); border: 1px solid var(--line2);
+    border-radius: var(--r-md); padding: 6px 12px;
+    font-size: 12px; color: var(--ink3); outline: none;
+    cursor: pointer; font-family: var(--sans);
+    transition: border-color 0.12s;
+}
+.map-filter-select:focus { border-color: var(--blue); }
+.map-legend {
+    display: flex; gap: 14px; margin-top: 10px;
+    font-size: 11px; color: var(--ink4); flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* ── SIDEBAR TABS ───────────────────────────────────── */
+.sidebar-tabs {
+    display: flex; border-bottom: 1px solid var(--line);
+}
+.s-tab {
+    flex: 1; padding: 12px 10px; text-align: center;
+    font-size: 12px; font-weight: 500; color: var(--ink3);
+    cursor: pointer; background: none; border: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.12s; font-family: var(--sans);
+}
+.s-tab.active {
+    color: var(--navy); border-bottom-color: var(--navy);
+    background: var(--bg3);
+}
+
+/* ── REPORT ITEMS ───────────────────────────────────── */
+.report-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 13px 18px; border-bottom: 1px solid var(--line);
+    text-decoration: none; color: inherit;
+    transition: background 0.1s;
+}
+.report-item:hover { background: var(--bg3); }
+.report-item-accent {
+    width: 3px; height: 36px; border-radius: 2px; flex-shrink: 0;
+    margin-top: 2px;
+}
+.report-item-body { flex: 1; min-width: 0; }
+.report-item-title {
+    font-size: 13px; font-weight: 500; color: var(--ink);
+    line-height: 1.35; margin-bottom: 5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.report-item-meta {
+    display: flex; gap: 10px; font-size: 11px; color: var(--ink4);
+    flex-wrap: wrap; align-items: center;
+}
+
+/* ── HOTSPOT SECTION ────────────────────────────────── */
+.hotspot-section {
+    background: var(--bg2);
+    border-top: 1px solid var(--line);
+    padding: 28px 32px 32px;
+}
+.hotspot-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+}
+.hc {
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 16px;
+    cursor: pointer; transition: all 0.15s;
+    position: relative; overflow: hidden;
+}
+.hc::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.hc:hover { background: var(--bg2); border-color: var(--line2); transform: translateY(-1px); }
+.hc-rank { font-size: 10px; color: var(--ink4); margin-bottom: 6px; font-weight: 500; }
+.hc-city { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.hc-count { font-size: 22px; font-weight: 600; line-height: 1; }
+.hc-label { font-size: 10px; color: var(--ink4); margin-top: 2px; }
+.hc-bar { height: 2px; background: var(--line); border-radius: 1px; margin-top: 10px; overflow: hidden; }
+.hc-fill { height: 100%; border-radius: 1px; transition: width 1.2s ease; }
+
+.hc1::before { background: var(--red); } .hc1 .hc-count { color: var(--red); }
+.hc2::before { background: var(--amber); } .hc2 .hc-count { color: var(--amber); }
+.hc3::before { background: #c2410c; } .hc3 .hc-count { color: #c2410c; }
+.hc4::before { background: var(--blue); } .hc4 .hc-count { color: var(--blue); }
+.hc5::before { background: var(--green); } .hc5 .hc-count { color: var(--green); }
+
+/* ── SEARCH RESULTS ─────────────────────────────────── */
+.search-result-section { padding: 24px 32px 40px; }
+.search-result-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+}
+.result-card {
+    background: var(--bg2); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 16px;
+    text-decoration: none; color: inherit; display: block;
+    transition: border-color 0.12s;
+}
+.result-card:hover { border-color: var(--line2); }
+
+/* ── RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 960px) {
+    .content-grid { grid-template-columns: 1fr; }
+    .content-left { border-right: none; border-bottom: 1px solid var(--line); }
+    .hotspot-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .stat-cell:nth-child(2) { border-right: none; }
+}
+@media (max-width: 560px) {
+    .hero { padding: 36px 20px 32px; }
+    .hotspot-grid { grid-template-columns: 1fr 1fr; }
+    .hotspot-section { padding: 20px; }
+    .content-left { padding: 20px; }
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-inner">
+        <div class="hero-label">
+            <span class="hero-label-dot"></span>
+            Real-time monitoring · India
+        </div>
+        <h1>Cybercrime & Scam<br>Reporting <em>Portal</em></h1>
+        <p>Report cybercrime incidents, track scam hotspots across India, and help authorities identify fraud patterns. Every report matters.</p>
+        <div class="hero-btns">
+            <a href="/report/" class="btn-primary">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                Report an Incident
+            </a>
+            <a href="/explore/" class="btn-secondary">Browse All Reports →</a>
+        </div>
+    </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+    <div class="stat-cell">
+        <div class="stat-n n-red">{{ total_reports|default:"0" }}</div>
+        <div class="stat-l">Total Reports</div>
+    </div>
+    <div class="stat-cell">
+        <div class="stat-n n-amber">₹ {% if total_loss %}{{ total_loss|floatformat:0 }}{% else %}—{% endif %}</div>
+        <div class="stat-l">Reported Losses</div>
+    </div>
+    <div class="stat-cell">
+        <div class="stat-n n-blue">{{ most_reported|length|default:"0" }}</div>
+        <div class="stat-l">Locations Tracked</div>
+    </div>
+    <div class="stat-cell">
+        <div class="stat-n n-green">{{ critical_count|default:"0" }}</div>
+        <div class="stat-l">Critical Severity</div>
+    </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="content-grid">
+
+    <!-- MAP PANEL -->
+    <div class="content-left">
+        <div class="sec-hdr">
+            <div class="sec-title">
+                Incident Heatmap
+                <div class="sec-badge"><span class="sec-badge-dot"></span>Live</div>
+            </div>
+            <select class="map-filter-select" id="typeFilter">
+                <option value="">All types</option>
+                <option value="phishing">Phishing</option>
+                <option value="fraud_call">Fraud call</option>
+                <option value="upi_fraud">UPI fraud</option>
+                <option value="fake_shop">Fake shop</option>
+            </select>
+        </div>
+
+        {% if query %}
+        <form style="display:flex;gap:8px;margin-bottom:14px" method="GET" action="/">
+            <input name="q" value="{{ query }}" placeholder="Search reports..."
+                   style="flex:1;background:var(--bg2);border:1px solid var(--line2);border-radius:var(--r-md);padding:8px 12px;font-size:13px;color:var(--ink);outline:none;font-family:var(--sans)">
+            <button type="submit" style="background:var(--navy);color:#e8eaf6;border:none;border-radius:var(--r-md);padding:8px 14px;font-size:12px;cursor:pointer;font-family:var(--sans)">Search</button>
+        </form>
+        {% endif %}
+
+        <div id="map"></div>
+        <div class="map-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#e24b4a"></div>Critical</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ba7517"></div>High</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#185fa5"></div>Medium</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3b6d11"></div>Low</div>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="content-right">
+        <div class="sidebar-tabs">
+            <button class="s-tab active" id="tab-recent" onclick="switchTab('recent')">Recent</button>
+            <button class="s-tab" id="tab-locations" onclick="switchTab('locations')">Locations</button>
+        </div>
+
+        <div id="panel-recent">
+            {% for scam in latest_reports %}
+            <a class="report-item" href="/scam/{{ scam.id }}/">
+                <div class="report-item-accent"
+                     style="background:{% if scam.scam_type == 'phishing' or scam.scam_type == 'ransomware' %}var(--red){% elif scam.scam_type == 'fraud_call' or scam.scam_type == 'upi_fraud' %}var(--amber){% elif scam.scam_type == 'fake_shop' %}var(--blue){% else %}var(--ink4){% endif %}">
+                </div>
+                <div class="report-item-body">
+                    <div class="report-item-title">{{ scam.title }}</div>
+                    <div class="report-item-meta">
+                        <span>{{ scam.location }}</span>
+                        <span>{{ scam.incident_date|default:scam.date }}</span>
+                        {% if scam.amount_lost %}<span class="amount-chip">₹ {{ scam.amount_lost }}</span>{% endif %}
+                    </div>
+                </div>
+                <span class="badge badge-{{ scam.scam_type }}">{{ scam.get_scam_type_display }}</span>
+            </a>
+            {% empty %}
+            <div style="padding:40px 20px;text-align:center;color:var(--ink4);font-size:13px">
+                No reports yet.<br>
+                <a href="/report/" style="color:var(--red);font-weight:500;margin-top:8px;display:inline-block">Be the first to report →</a>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="panel-locations" style="display:none">
+            {% for loc in most_reported %}
+            <div class="report-item" style="cursor:default">
+                <div style="width:22px;height:22px;border-radius:var(--r-sm);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--ink3);flex-shrink:0">
+                    {{ forloop.counter }}
+                </div>
+                <div class="report-item-body">
+                    <div class="report-item-title">{{ loc.location }}</div>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:var(--red)">{{ loc.count }}</div>
+            </div>
+            {% empty %}
+            <div style="padding:40px 20px;text-align:center;color:var(--ink4);font-size:13px">No location data yet.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- HOTSPOTS -->
+<div class="hotspot-section">
+    <div class="sec-hdr">
+        <div class="sec-title">Top Incident Hotspots</div>
+        <a href="/explore/" class="sec-link">View all reports →</a>
+    </div>
+    <div class="hotspot-grid">
+        {% for loc in most_reported %}
+        <div class="hc hc{{ forloop.counter }}">
+            <div class="hc-rank">#{{ forloop.counter }}</div>
+            <div class="hc-city">{{ loc.location }}</div>
+            <div class="hc-count">{{ loc.count }}</div>
+            <div class="hc-label">reported incidents</div>
+            <div class="hc-bar">
+                <div class="hc-fill"
+                     style="width:0%;background:{% if forloop.counter == 1 %}var(--red){% elif forloop.counter == 2 %}var(--amber){% elif forloop.counter == 3 %}#c2410c{% elif forloop.counter == 4 %}var(--blue){% else %}var(--green){% endif %}">
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div style="grid-column:1/-1;text-align:center;color:var(--ink4);padding:24px 0;font-size:13px">No hotspot data yet.</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if search_results %}
+<div class="search-result-section">
+    <div class="sec-hdr">
+        <div class="sec-title">Results for "{{ query }}"</div>
+        <span style="font-size:12px;color:var(--ink4)">{{ search_results|length }} found</span>
+    </div>
+    <div class="search-result-grid">
+        {% for scam in search_results %}
+        <a class="result-card" href="/scam/{{ scam.id }}/">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px">
+                <div style="font-size:13px;font-weight:500;color:var(--ink)">{{ scam.title }}</div>
+                <span class="badge badge-{{ scam.scam_type }}">{{ scam.get_scam_type_display }}</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink4)">{{ scam.location }} · {{ scam.incident_date|default:scam.date }}</div>
+            {% if scam.amount_lost %}<div style="margin-top:6px"><span class="amount-chip">₹ {{ scam.amount_lost }}</span></div>{% endif %}
+        </a>
+        {% empty %}
+        <div style="grid-column:1/-1;color:var(--ink4);font-size:13px;padding:12px 0">No results for "{{ query }}".</div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script>
+const map = L.map('map', { zoomControl: true }).setView([20.5937, 78.9629], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
+}).addTo(map);
+let heatLayer;
+async function loadHeatmap() {
+    try {
+        const res = await fetch('/heatmap-data/');
+        const data = await res.json();
+        const pts = data.heatmap_data.map(p => [p[0], p[1], p[2]]);
+        if (heatLayer) map.removeLayer(heatLayer);
+        heatLayer = L.heatLayer(pts, {
+            radius: 28, blur: 18, maxZoom: 10,
+            gradient: { 0.0: '#3b6d11', 0.4: '#185fa5', 0.7: '#ba7517', 1.0: '#e24b4a' }
+        }).addTo(map);
+    } catch(e) { console.error(e); }
+}
+loadHeatmap();
+setInterval(loadHeatmap, 15000);
+
+function switchTab(n) {
+    ['recent','locations'].forEach(t => {
+        document.getElementById('tab-'+t).classList.toggle('active', t===n);
+        document.getElementById('panel-'+t).style.display = t===n ? 'block' : 'none';
+    });
+}
+
+const bw = [100, 82, 65, 48, 32];
+document.querySelectorAll('.hc-fill').forEach((el, i) => {
+    el.style.width = '0%';
+    setTimeout(() => { el.style.width = (bw[i]??20)+'%'; }, 300 + i*100);
+});
+</script>
+{% endblock %}
